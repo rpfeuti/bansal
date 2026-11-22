@@ -7,6 +7,7 @@ motor (src/bansal) quando o exemplo é do projeto. Nada é gravado fora de docs/
 """
 
 import math
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -29,7 +30,7 @@ from bansal.simplex import maximizar
 
 RAIZ = Path(__file__).resolve().parents[1]
 SAIDA = RAIZ / "data" / "saida"
-ARQ = RAIZ / "docs" / "guia_matematica_bansal.pdf"
+ARQ = Path(sys.argv[1]) if len(sys.argv) > 1 else RAIZ / "docs" / "guia_matematica_bansal.pdf"
 
 # ------------------------------------------------------------------ estilo (o mesmo do primeiro guia)
 FONTES = Path("C:/Windows/Fonts")
@@ -56,8 +57,9 @@ S = {
                          spaceAfter=10),
     "h1sum": ParagraphStyle("h1sum", fontName="Arial-B", fontSize=18, leading=23, textColor=AZUL, spaceAfter=10),
     "h2": ParagraphStyle("h2", fontName="Arial-B", fontSize=13.5, leading=18, textColor=AZUL, spaceBefore=12,
-                         spaceAfter=6),
-    "h3": ParagraphStyle("h3", fontName="Arial-B", fontSize=11, leading=15, spaceBefore=8, spaceAfter=4),
+                         spaceAfter=6, keepWithNext=1),
+    "h3": ParagraphStyle("h3", fontName="Arial-B", fontSize=11, leading=15, spaceBefore=8, spaceAfter=4,
+                         keepWithNext=1),
     "p": ParagraphStyle("p", fontName="Arial", fontSize=10, leading=14.2, alignment=TA_JUSTIFY, spaceAfter=6),
     "item": ParagraphStyle("item", fontName="Arial", fontSize=10, leading=14, leftIndent=14, bulletIndent=3,
                            spaceAfter=2),
@@ -171,7 +173,8 @@ def seta(d, x1, y1, x2, y2, cor=colors.black):
                    x2 + 7 * math.cos(a - 2.7), y2 + 7 * math.sin(a - 2.7)], fillColor=cor, strokeColor=cor))
 
 
-def grafico(pontos=(), linhas=(), poligono=None, eixo_x="x", eixo_y="y", xmax=10, ymax=9, legendas=()):
+def grafico(pontos=(), linhas=(), poligono=None, eixo_x="x", eixo_y="y", xmax=10, ymax=9, legendas=(),
+            setas=()):
     esc, ox, oy = 26, 40, 30
     d = Drawing(330, 290)
     if poligono:
@@ -192,6 +195,8 @@ def grafico(pontos=(), linhas=(), poligono=None, eixo_x="x", eixo_y="y", xmax=10
         for x, y in pts:
             xy += [ox + x * esc, oy + y * esc]
         d.add(PolyLine(xy, strokeColor=cor, strokeWidth=1.5, strokeDashArray=tracejado))
+    for (x1, y1), (x2, y2), cor in setas:
+        seta(d, ox + x1 * esc, oy + y1 * esc, ox + x2 * esc, oy + y2 * esc, cor)
     for nome, x, y, cor in pontos:
         d.add(Circle(ox + x * esc, oy + y * esc, 3.5, fillColor=cor, strokeColor=cor))
         d.add(String(ox + x * esc + 5, oy + y * esc + 4, nome, fontName="Arial-B", fontSize=8.5, fillColor=cor))
@@ -729,14 +734,35 @@ P("Uma <b>média ponderada</b> multiplica cada valor por um peso e soma, com os 
   "borda de cima (as melhores práticas) é a <b>fronteira</b>.")
 X4, Y4 = [2, 4, 8, 6], [2, 6, 8, 4]
 P("Exemplo: 4 bancos, insumo = funcionários, produto = empréstimos: A (2; 2), B (4; 6), C (8; 8), D (6; 4).")
-H2("A eficiência de Farrell")
-P("Pergunta: <b>até que fração θ dos seus insumos a DMU poderia reduzir, mantendo a produção?</b> É uma PL "
-  "(capítulo 5) com variáveis θ e λ:")
-F("""minimizar θ
-   SOMA( λ[j] × insumo[j] )  ≤ θ × insumo_o       (a média usa no máximo θ do insumo de o)
-   SOMA( λ[j] × produto[j] ) ≥ produto_o          (e produz pelo menos o que o produz)
+H2("A eficiência de Farrell: andar na horizontal até a fronteira")
+P("A primeira forma de medir \"quão longe da fronteira\" está uma DMU foi proposta por Farrell (1957). A pergunta é: "
+  "<b>mantendo a produção, com que fração dos seus insumos a DMU conseguiria trabalhar, se fizesse tão bem quanto as "
+  "melhores?</b>")
+P("Veja D no gráfico: 6 funcionários, 4 de empréstimos. Fixamos a produção em 4 e andamos para a <b>esquerda</b> "
+  "(menos funcionários) até bater na fronteira. A fronteira, na altura 4, está no segmento entre A (2; 2) e B (4; 6). "
+  "Esse segmento é a reta empréstimos = 2 × funcionários − 2; para empréstimos = 4, funcionários = 3. O ponto (3; 4) "
+  "é a média 50% A + 50% B: 0,5×2 + 0,5×4 = 3 funcionários e 0,5×2 + 0,5×6 = 4 de empréstimos.")
+grafico(pontos=[("A", 2, 2, AZUL), ("B", 4, 6, AZUL), ("C", 8, 8, AZUL), ("D", 6, 4, AZUL),
+                ("(3; 4)", 3, 4, colors.HexColor("#C00000"))],
+        linhas=[([(2, 0), (2, 2), (4, 6), (8, 8), (10, 8)], AZUL, None)],
+        setas=[((6, 4), (3.1, 4), colors.HexColor("#C00000"))],
+        eixo_x="insumo (funcionários)", eixo_y="produto (empréstimos)")
+LEG("Figura 2. A fronteira (azul) liga A, B e C. A seta parte de D e anda na horizontal: mesma produção, menos "
+    "funcionários, até a fronteira em (3; 4).")
+P("Resultado: D poderia produzir o mesmo com 3 funcionários em vez de 6, ou seja, com a fração <b>θ = 3/6 = 0,5</b> "
+  "dos seus insumos. θ (teta) = 1 significa que a DMU já está na fronteira (eficiente); θ = 0,5 significa que metade "
+  "do insumo bastaria.")
+H2("A mesma conta escrita como programação linear")
+P("Com muitas DMUs e muitos insumos não dá para olhar o gráfico; escreve-se a mesma pergunta como uma PL (capítulo "
+  "5). As incógnitas são θ e os pesos λ da média ponderada que serve de referência:")
+F("""minimizar θ                                    (a menor fração possível dos insumos)
+sujeito a
+   SOMA( λ[j] × insumo[j] )  ≤ θ × insumo_o     a média usa no máximo θ × insumo de o
+   SOMA( λ[j] × produto[j] ) ≥ produto_o        e produz pelo menos o que o produz
+   SOMA( λ[j] ) = 1                             é uma média ponderada (ver abaixo)
    λ[j] ≥ 0
-   (o = DMU avaliada; j percorre todas as DMUs)""")
+(o = DMU avaliada; j percorre todas as DMUs)""")
+P("Para D, o simplex encontra θ = 0,5 com λA = 0,5 e λB = 0,5, exatamente o ponto (3; 4) do gráfico.")
 
 
 def farrell(o, vrs):
@@ -758,16 +784,16 @@ H2("Retornos de escala")
 P("<b>Retornos de escala</b> descrevem o que acontece com a produção quando todos os insumos aumentam na mesma "
   "proporção: <b>constantes</b> (dobrar insumos dobra a produção), <b>crescentes</b> (mais que dobra), "
   "<b>decrescentes</b> (menos que dobra). Em DEA isso se traduz numa única restrição sobre os pesos:")
-L("<b>CRS</b> (retornos constantes): nenhuma restrição na soma dos λ. O modelo pode comparar uma DMU com \"o dobro "
+L("<b>CRS</b> (retornos constantes): retira-se a linha SOMA(λ) = 1; os pesos podem somar qualquer valor. O modelo pode comparar uma DMU com \"o dobro "
   "de B\" (λ = 2) ou \"metade de B\" (λ = 0,5). A fronteira vira uma reta saindo da origem e passando pela DMU de "
   "maior produto ÷ insumo (B: 6/4 = 1,5).",
-  "<b>VRS</b> (retornos variáveis): acrescenta SOMA(λ) = 1. Só médias ponderadas são permitidas; uma DMU pequena é "
-  "comparada com DMUs de tamanho parecido. A fronteira liga A, B e C.")
+  "<b>VRS</b> (retornos variáveis): é o modelo usado até aqui, com SOMA(λ) = 1. Só médias ponderadas são "
+  "permitidas; uma DMU pequena é comparada com DMUs de tamanho parecido. A fronteira liga A, B e C.")
 grafico(pontos=[("A", 2, 2, AZUL), ("B", 4, 6, AZUL), ("C", 8, 8, AZUL), ("D", 6, 4, AZUL)],
         linhas=[([(0, 0), (6, 9)], LARANJA_ESC, [4, 3]), ([(2, 0), (2, 2), (4, 6), (8, 8), (10, 8)], AZUL, None)],
         eixo_x="insumo (funcionários)", eixo_y="produto (empréstimos)",
         legendas=[("— fronteira VRS", AZUL), ("- - fronteira CRS", LARANJA_ESC)])
-LEG("Figura 2. Fronteira CRS (laranja, pela origem e por B) e fronteira VRS (azul, ligando A, B e C).")
+LEG("Figura 3. Fronteira CRS (laranja, pela origem e por B) e fronteira VRS (azul, ligando A, B e C).")
 T([["DMU", "θ CRS", "θ VRS", "Leitura (VRS)"]] +
   [[k, br(th[k, False], 3), br(th[k, True], 3),
     "eficiente" if th[k, True] > 0.999 else f"produziria o mesmo com {br(th[k, True] * 100, 0)}% dos insumos"]
@@ -778,38 +804,177 @@ P("D no VRS: θ = 0,5. A média 50% A + 50% B usa 0,5×2 + 0,5×4 = 3 funcionár
   f"<b>eficiência de escala</b> (D: {br(th['D', False], 3)} ÷ {br(th['D', True], 3)} = "
   f"{br(th['D', False] / th['D', True], 3)}): a parte da ineficiência que se deve ao tamanho.")
 
-H1("11. A função distância direcional e as constantes ξ e π (dúvida 5)")
-P("A medida de Farrell só reduz insumos. A <b>função distância direcional</b> (Chambers, Chung e Färe, 1996) "
-  "reduz insumos e aumenta produtos <b>ao mesmo tempo</b>, andando numa <b>direção</b> g = (g_insumo, g_produto) "
-  "escolhida. O tamanho do passo até a fronteira é β:")
-F("""maximizar β
-   SOMA( λ × insumo )  ≤ insumo_o  − β × g_insumo
-   SOMA( λ × produto ) ≥ produto_o + β × g_produto
-   SOMA( λ ) = 1 ;  λ ≥ 0 ;  β pode ter qualquer sinal""")
-bD, xD = maximizar(np.array([0, 0, 0, 0, 1.]), np.array([[2, 4, 8, 6, 6], [-2, -6, -8, -4, 4.]]), [6, -4],
-                   np.array([[1, 1, 1, 1, 0.]]), [1], livres=[4])
-P(f"Com g = (6; 4), os próprios valores de D: β = {br(bD, 3)}. D poderia reduzir funcionários em "
-  f"{br(bD, 3)} × 6 = {br(bD * 6, 2)} e aumentar empréstimos em {br(bD, 3)} × 4 = {br(bD * 4, 2)} ao mesmo tempo. "
-  "β = 0: na fronteira.")
-H2("Por que usar constantes na direção")
-P("Se um produto pode ser <b>negativo</b> (lucro com prejuízo), a direção \"o próprio valor\" quebra: com lucro "
-  "−5, \"aumentar β × (−5)\" diminui o lucro. Uma direção zero também quebra: o β deixa de mexer naquela variável. "
-  "Uma solução (Lin e Chen, usada por Bansal et al.) é deslocar a direção por constantes que garantem sinal positivo:")
-F("""insumo:   g = x_o + μ,    μ = ξ × max|x|        (max sobre todas as DMUs)
-produto:  g = y_o − ν,    ν = min(y) − π
+H1("11. Medir andando numa direção: a função distância direcional e as constantes ξ e π (dúvida 5)")
+P("No capítulo 10, a distância de D até a fronteira foi medida andando <b>só na horizontal</b>: reduzindo "
+  "funcionários sem mexer nos empréstimos. Mas pode-se andar em qualquer outra direção — por exemplo, reduzir "
+  "funcionários <b>e ao mesmo tempo</b> aumentar empréstimos. Este capítulo explica, em ordem:")
+N("o que é andar numa direção e o que é o β;",
+  "por que o β muda quando a direção muda;",
+  "a direção mais natural (\"o próprio tamanho do banco\") e quando ela quebra (valores zero ou negativos);",
+  "como as constantes ξ e π consertam isso, e o que o paper diz sobre os valores 3 e 1.")
+IDEIA("ξ é a letra grega \"csi\" e π é a letra grega \"pi\". Aqui as duas são apenas <b>nomes de constantes</b> "
+      "escolhidas por quem aplica o método. Este π <b>não</b> é o número 3,14159.", titulo="Atenção")
+H2("11.1 O que é uma direção e o que é o β")
+P("Uma <b>direção</b> é um par de números g = (g_x; g_y) que diz quanto se anda em cada eixo a cada \"passo\": g_x "
+  "unidades de insumo a menos e g_y unidades de produto a mais. Dar β passos a partir de D (6; 4) leva ao ponto:")
+F("""( 6 − β × g_x  ;  4 + β × g_y )""")
+P("Com g = (6; 4) — os próprios valores de D —, um passo inteiro zeraria os 6 funcionários e dobraria os 4 de "
+  "empréstimos; passos fracionários andam uma parte disso. A tabela testa alguns valores de β. Um ponto é "
+  "<b>possível</b> se alguma média de bancos usa no máximo aquele insumo e produz pelo menos aquele produto, ou seja, "
+  "se o ponto está abaixo da fronteira:")
 
-Como max|x| ≥ |x_o|:   x_o + μ ≥ x_o + ξ×|x_o| ≥ (ξ − 1)×|x_o| ≥ 0   se ξ ≥ 1
-Como y_o ≥ min(y):    y_o − ν = (y_o − min y) + π ≥ π > 0           se π > 0""")
-P("Com ξ = 1 e π = 0, a DMU no extremo (o maior |x| negativo, ou o menor y) teria direção exatamente zero. ξ > 1 e "
-  "π > 0 dão uma margem. A margem importa quando a direção usa os máximos e mínimos de um ano e os dados de outro "
-  "ano, que podem ficar fora daquela faixa:")
-F("""y no ano da fronteira: 2, 5, 8 → min = 2;  com π = 1, ν = 1
-DMU com y = 2,5 em outro ano:  g = 2,5 − 1 = 1,5   (positivo)
-Se tivesse y = 0,5:            g = 0,5 − 1 = −0,5  (negativo: a margem não bastou)""")
-P("O que Bansal et al. dizem sobre os valores (seções 3.2 e 4.3.1): as constantes devem ser positivas e escolhidas "
-  "de modo que todas as direções sejam positivas; o modelo M1 usa ξ = 3 e π = 1 seguindo Lin e Chen; e, segundo os "
-  "autores, a escolha não altera a inferência geral, embora os valores possam mudar levemente. O paper não traz outra "
-  "justificativa numérica, e o artigo de Lin e Chen não está no projeto.")
+
+def fronteira_toy(x):
+    if x < 2:
+        return None
+    return 2 * x - 2 if x <= 4 else (0.5 * x + 4 if x <= 8 else 8.0)
+
+
+lin = [["β", "ponto (funcionários; empréstimos)", "fronteira com esse número de funcionários", "possível?"]]
+for b in (0, 0.1, 0.2, 0.3, 0.375, 0.4):
+    xx, yy = 6 - 6 * b, 4 + 4 * b
+    fr = fronteira_toy(xx)
+    lin.append([br(b, 3), f"({br(xx, 2)}; {br(yy, 2)})", br(fr, 2), "sim" if yy <= fr + 1e-12 else "<b>não</b>"])
+T(lin, [2, 5.4, 6, 3])
+P("Até β = 0,375 o ponto continua possível; em 0,375 ele toca a fronteira (5,5 = 5,5); depois sai. O maior β "
+  "possível é a <b>função distância direcional</b> de D na direção g (Chambers, Chung e Färe, 1996). Leitura: D "
+  "poderia andar 0,375 passo, isto é, reduzir 0,375 × 6 = 2,25 funcionários e aumentar 0,375 × 4 = 1,5 de "
+  "empréstimos <b>ao mesmo tempo</b>. β = 0 quer dizer que a DMU já está na fronteira.")
+P("Como PL, é a mesma ideia do capítulo 10, trocando θ pelo passo β:")
+F("""maximizar β
+   SOMA( λ × insumo )  ≤ insumo_o  − β × g_x      (insumo reduzido em β passos)
+   SOMA( λ × produto ) ≥ produto_o + β × g_y      (produto aumentado em β passos)
+   SOMA( λ ) = 1 ;  λ ≥ 0 ;  β pode ter qualquer sinal""")
+
+
+def ddf_toy(gx, gy):
+    A = np.array([[2, 4, 8, 6, gx], [-2, -6, -8, -4, gy]], float)
+    return maximizar(np.array([0, 0, 0, 0, 1.]), A, [6, -4], np.array([[1, 1, 1, 1, 0.]]), [1], livres=[4])
+
+
+DIRS = [((6, 0), "só reduz insumo (é a direção de Farrell)"), ((0, 4), "só aumenta produto"),
+        ((6, 4), "os próprios valores de D"), ((1, 1), "um de cada"),
+        ((30, 3), "a regra do paper com ξ = 3, π = 1 (ver 11.7)")]
+CORES_D = [colors.HexColor("#C00000"), colors.HexColor("#548235"), LARANJA_ESC, colors.HexColor("#7030A0"),
+           colors.HexColor("#404040")]
+RD = {g: ddf_toy(*g) for g, _ in DIRS}
+H2("11.2 O β depende da direção")
+P("A mesma DMU D, medida em direções diferentes, tem β diferentes — e chega a pontos diferentes da fronteira:")
+grafico(pontos=[("A", 2, 2, AZUL), ("B", 4, 6, AZUL), ("C", 8, 8, AZUL), ("D", 6, 4, AZUL)],
+        linhas=[([(2, 0), (2, 2), (4, 6), (8, 8), (10, 8)], AZUL, None)],
+        setas=[((6, 4), (6 - RD[g][0] * g[0], 4 + RD[g][0] * g[1]), cor) for (g, _), cor in zip(DIRS, CORES_D)],
+        eixo_x="insumo (funcionários)", eixo_y="produto (empréstimos)")
+LEG("Figura 4. Cinco direções a partir de D (cores na ordem da tabela). Cada seta termina onde a direção toca a "
+    "fronteira.")
+T([["direção g", "o que é", "β", "ponto de chegada", "leitura"]] +
+  [[f"({g[0]}; {g[1]})", txt, br(RD[g][0], 4),
+    f"({br(6 - RD[g][0] * g[0], 2)}; {br(4 + RD[g][0] * g[1], 2)})",
+    f"{br(RD[g][0], 3)} passo(s) de {g[0]} func. a menos e {g[1]} empr. a mais"] for g, txt in DIRS],
+  [2.2, 4.4, 1.8, 3, 5])
+P("Três lições:")
+L("<b>β conta passos do tamanho da direção.</b> Com g = (1; 1), β = 2: dois passos de \"1 funcionário a menos e 1 "
+  "de empréstimo a mais\" levam D exatamente até B (4; 6). Com g = (30; 3), cada passo é enorme, e β fica pequeno "
+  "(0,095).",
+  "<b>A medida de Farrell é um caso particular.</b> Com g = (6; 0) anda-se só na horizontal: β = 0,5, e "
+  "θ = 1 − β = 0,5, o mesmo resultado do capítulo 10.",
+  "<b>β só é comparável entre DMUs (ou entre anos) se a direção seguir a mesma regra para todas.</b> Por isso o "
+  "método precisa de uma regra que funcione para qualquer DMU — e é aí que entram as constantes.")
+H2("11.3 A direção natural e quando ela quebra")
+P("A escolha mais natural é g = os próprios valores da DMU: g_x = insumo_o, g_y = produto_o. Assim cada passo é "
+  "proporcional ao tamanho da DMU, e β vira um percentual (β = 0,375 = \"37,5% menos insumo e 37,5% mais produto\"). "
+  "Isso funciona enquanto todos os valores forem positivos. Com dados reais de bancos, nem sempre são:")
+F("""Problema 1 — valor ZERO. Lucro = 0 → g_y = 0.
+   Depois de β passos: 0 + β × 0 = 0. O passo não mexe no lucro:
+   o método fica \"cego\" para essa variável.
+
+Problema 2 — PRODUTO negativo. Lucro = −5 (prejuízo) → g_y = −5.
+   Depois de β = 0,2:  −5 + 0,2 × (−5) = −6.
+   \"Aumentar o produto\" virou piorar o prejuízo.
+
+Problema 3 — INSUMO negativo. Algumas variáveis tratadas como insumo podem ser
+   negativas (por exemplo, o lucro do ano anterior, que entra como recurso herdado).
+   x = −4 → g_x = −4.  Depois de β = 0,2:  −4 − 0,2 × (−4) = −3,2.
+   \"Reduzir o insumo\" virou aumentá-lo.""")
+P("A solução usada por Bansal et al. (seguindo Lin e Chen) é trocar a direção natural por uma versão <b>deslocada</b>, "
+  "que é sempre positiva. Há uma regra para produtos e outra para insumos.")
+H2("11.4 O conserto para produtos: medir a partir do pior banco, mais uma margem π")
+F("""g_y = y_o − ν        com   ν = min(y) − π
+   (min(y) = menor valor entre todas as DMUs)
+
+Substituindo ν:  g_y = y_o − min(y) + π
+                     = (distância do banco até o pior banco do setor) + π""")
+P("Como nenhum banco está abaixo do mínimo, a distância até o pior banco é sempre ≥ 0; somando π > 0, a direção fica "
+  "sempre positiva, mesmo para o pior banco e mesmo com valores negativos. Exemplo com o lucro de 5 bancos:")
+luc = np.array([-5.0, 0, 3, 8, 12])
+T([["lucro do banco"] + [br(v, 0) for v in luc],
+   ["g_y com π = 0  (ν = −5)"] + [br(v + 5, 0) for v in luc],
+   ["g_y com π = 1  (ν = −6)"] + [br(v + 6, 0) for v in luc],
+   ["g_y com π = 0,01 (ν = −5,01)"] + [br(v + 5.01, 2) for v in luc]], [5.4] + [2.2] * 5)
+L("Com π = 0, o pior banco (lucro −5) tem direção 0: volta o problema 1.",
+  "Com π = 1, todos têm direção positiva; o pior banco anda 1 unidade de lucro por passo.",
+  "Com π muito pequeno (0,01), o pior banco anda só 0,01 por passo: para melhorar 1 unidade de lucro precisaria de "
+  "100 passos, e seu β ficaria enorme. O valor de π define o tamanho do passo do pior banco.")
+H2("11.5 O conserto para insumos: somar ξ vezes o maior valor absoluto")
+F("""g_x = x_o + μ        com   μ = ξ × max|x|
+   (max|x| = maior valor absoluto entre as DMUs)
+
+Como |x_o| ≤ max|x|, o pior caso é x_o = −max|x|:
+   g_x ≥ −max|x| + ξ × max|x| = (ξ − 1) × max|x|
+   ξ = 1 → g_x ≥ 0 (pode dar exatamente zero)
+   ξ = 3 → g_x ≥ 2 × max|x| > 0""")
+xin = np.array([-10.0, -4, 1, 3, 10])
+T([["valor do insumo"] + [br(v, 0) for v in xin],
+   ["g_x com ξ = 1  (μ = 10)"] + [br(v + 10, 0) for v in xin],
+   ["g_x com ξ = 3  (μ = 30)"] + [br(v + 30, 0) for v in xin]], [5.4] + [2.2] * 5)
+P("Com ξ = 1, o banco no extremo negativo (−10) fica com direção zero. Com ξ = 3 todos ficam positivos e com folga. "
+  "Repare também que, com ξ = 3, as direções de insumo ficam parecidas entre os bancos (de 20 a 40): o passo reduz "
+  "aproximadamente a mesma quantidade de insumo de todos.")
+H2("11.6 Por que a margem: comparações entre anos")
+P("O índice de produtividade (capítulo 12) mede um banco de um ano contra a fronteira de <b>outro</b> ano. Nessas "
+  "contas \"cruzadas\", a direção é calculada com o mínimo e o máximo do ano da fronteira, mas o valor do banco vem do "
+  "outro ano — e pode estar <b>fora</b> da faixa do ano da fronteira. É para esses casos que a margem serve:")
+F("""PRODUTO. Ano da fronteira: min(y) = 2.
+   Banco, no outro ano, com y = 1,5 (abaixo do mínimo).
+   π = 0:  g_y = 1,5 − 2       = −0,5   (quebra)
+   π = 1:  g_y = 1,5 − 2 + 1   =  0,5   (funciona)
+   Se o banco tivesse y = 0,5:  g_y = 0,5 − 2 + 1 = −0,5 → nem π = 1 bastaria.
+
+INSUMO. Ano da fronteira: max|x| = 10.
+   Banco, no outro ano, com x = −15.
+   ξ = 1:  g_x = −15 + 10 = −5   (quebra)
+   ξ = 3:  g_x = −15 + 30 = 15   (funciona)""")
+P("Por isso o paper diz que as constantes devem ser escolhidas \"appropriately\": grandes o bastante para que todas "
+  "as direções, inclusive as dos casos cruzados, fiquem positivas.")
+H2("11.7 O efeito das constantes no β")
+P("Voltando ao brinquedo: max|funcionários| = 8 e min(empréstimos) = 2. Para D (6; 4), as direções são "
+  "g_x = 6 + ξ × 8 e g_y = 4 − (2 − π) = 2 + π. Variando as constantes:")
+lin = [["ξ", "π", "direção (g_x; g_y)", "β", "funcionários a menos (β × g_x)", "empréstimos a mais (β × g_y)"]]
+for xi, pi_ in ((1, 1), (3, 1), (5, 1), (3, 0.5), (3, 2)):
+    gx, gy = 6 + 8 * xi, 2 + pi_
+    b, _ = ddf_toy(gx, gy)
+    lin.append([br(xi, 0), br(pi_, 1), f"({br(gx, 0)}; {br(gy, 1)})", br(b, 4), br(b * gx, 3), br(b * gy, 3)])
+T(lin, [1.2, 1.2, 3, 2, 4.4, 4.6])
+P("O β muda bastante com as constantes, porque muda o tamanho do passo. Também muda a proporção entre reduzir "
+  "insumo e aumentar produto: quanto maior ξ (passo de insumo maior em relação ao de produto), mais a melhora de D "
+  "aparece como redução de funcionários. O que o índice de produtividade usa é a comparação entre β's calculados "
+  "<b>com a mesma regra</b>.")
+H2("11.8 O que o paper diz sobre ξ = 3 e π = 1")
+P("O paper tem seis constantes, uma para cada tipo de variável, todas com o mesmo papel visto acima:")
+T([["tipo de variável", "direção", "constante", "valor no M1"],
+   ["insumo", "x_o + μ,  μ = ξ × max|x|", "ξ", "3"],
+   ["produto indesejável (NPL do ano)", "u_o + ω,  ω = ξ' × max|u|", "ξ'", "3"],
+   ["carryover do ano anterior", "c_o + α,  α = ξ'' × max|c|", "ξ''", "3"],
+   ["insumo indesejável (NPL do ano anterior)", "w_o − ρ,  ρ = min(w) − π", "π", "1"],
+   ["produto", "y_o − ν,  ν = min(y) − π'", "π'", "1"],
+   ["carryover do ano", "c_o − γ,  γ = min(c) − π''", "π''", "1"]], [5.4, 5, 2.2, 2.6])
+L("Seção 3.2: as constantes são \"positive real constants\", escolhidas de modo que, nos casos cruzados, todas as "
+  "direções sejam <b>positivas</b> (11.6).",
+  "Seção 4.3.1: o M1 usa ξ = ξ' = ξ'' = 3 e π = π' = π'' = 1, \"following Lin and Chen\" (referência [62]). No M2 "
+  "as constantes se chamam η e δ: η = 3 e δ = 1 quando a fronteira é do ano t; η = 1,5 e δ = 1 quando é do ano t+1.",
+  "Ainda na seção 4.3.1, os autores afirmam que a escolha não influencia a inferência geral da análise, mas que os "
+  "valores dos índices podem ser levemente afetados.")
+P("Esse é todo o embasamento que o paper dá: os valores vêm de Lin e Chen, e a exigência matemática é a positividade "
+  "das direções. O artigo de Lin e Chen não está no projeto, então este guia não vai além disso.")
 
 H1("12. Índices de Malmquist e Malmquist-Luenberger (dúvida 7)")
 H2("Produtividade entre dois anos")
@@ -942,7 +1107,7 @@ P("A <b>distribuição normal</b> é a curva em forma de sino. É definida por d
 F("""z = (x − média) / desvio-padrão      → \"quantos desvios-padrão x está acima da média\"
 Ex.: média 50, desvio 5, x = 62  →  z = (62 − 50)/5 = 2,4""")
 figura_normal()
-LEG("Figura 3. Normal padrão. 95% da probabilidade fica entre −1,96 e 1,96; 2,5% em cada cauda.")
+LEG("Figura 5. Normal padrão. 95% da probabilidade fica entre −1,96 e 1,96; 2,5% em cada cauda.")
 F(f"""Probabilidade de ficar ABAIXO de z, para a normal padrão (no código: normal_cdf):
    z = 0      → {br(normal_cdf(0), 4)}
    z = 1      → {br(normal_cdf(1), 4)}      (entre −1 e 1: 68%)
@@ -966,7 +1131,7 @@ def dist_media(k):
 
 barras_lado_a_lado([("1 dado",) + dist_media(1), ("média de 2 dados",) + dist_media(2),
                     ("média de 5 dados",) + dist_media(5)])
-LEG("Figura 4. Probabilidades exatas da média de 1, 2 e 5 dados.")
+LEG("Figura 6. Probabilidades exatas da média de 1, 2 e 5 dados.")
 P("Como os estimadores (médias, coeficientes de regressão, médias de momentos) são somas de muitos termos, em amostras "
   "grandes eles têm distribuição aproximadamente normal, centrada no seu valor esperado e com desvio igual ao "
   "erro-padrão. Isso é o que permite os testes do próximo capítulo.")
