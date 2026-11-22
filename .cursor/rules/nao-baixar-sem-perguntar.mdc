@@ -1,0 +1,12 @@
+---
+description: Nunca baixar arquivos da internet sem perguntar ao usuário
+alwaysApply: true
+---
+
+# Não baixar arquivos sem perguntar
+
+Nunca baixar arquivos da internet sem perguntar antes ao usuário.
+
+- Vale para qualquer meio: `curl`, `wget`, `Invoke-WebRequest`, `Invoke-RestMethod`, `git clone`, `pip`/`npm` que busquem pacotes, scripts que fazem download, `WebFetch` salvando em disco.
+- Antes de baixar, perguntar de forma curta: o que será baixado, a URL de origem e onde será salvo.
+- Só baixar depois de o usuário confirmar.

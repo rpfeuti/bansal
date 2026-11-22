@@ -1,0 +1,29 @@
+---
+description: Réplica fiel do Bansal et al. (2022) para entender o que foi feito; nada além do paper
+alwaysApply: true
+---
+
+# Fidelidade ao paper
+
+O projeto replica Bansal, Kumar, Mehra & Gulati (2022), Omega 107, 102538, em `Bansal(2022).pdf`. O paper é a única especificação.
+
+O objetivo é entender o que os autores fizeram, reproduzindo os passos. Não é avaliar, auditar nem criticar o paper, os dados ou as fontes.
+
+## Não inventar
+
+- Modelos, variáveis, amostra, anos, deflator, escala, testes e especificações do GMM saem do paper.
+- Não acrescentar variável, índice, modelo, teste, verificação, gráfico, tela ou opção que o paper não tenha.
+- Não "melhorar" o método nem propor alternativas.
+- Não comentar qualidade dos dados, auditoria, robustez, limitações ou divergências, nem nas respostas, nem nos planos, nem no app.
+- Não preencher lacuna com suposição silenciosa.
+
+## Quando o paper não diz
+
+Perguntar ao usuário de forma curta, com o trecho do paper e as opções. Não decidir sozinho.
+
+## Exemplos
+
+- ERRADO: "o balanço 1221 não é auditado".
+- ERRADO: bloquear uma etapa até a Tabela 2 "bater", ou mostrar coluna de erro e desvio.
+- ERRADO: incluir bancos estrangeiros, interpolar agências faltantes, adicionar um índice clássico.
+- CERTO: mostrar a tabela calculada ao lado da publicada, sem comentário.
