@@ -149,6 +149,45 @@ def ler_measure(nome, itens, fator=100.0, somar=False):
     return out.drop_duplicates(["bank_id", "ano", "item"], keep="first").drop(columns="rotulo")
 
 
+def ler_npa_liquido_strbi():
+    """NPA líquido no fim do ano, Rs lakh, do STRBI: B6 (2009-2013) e Tabela 6 do DBIE (2014-2017).
+
+    Na Tabela 6 do DBIE, a abertura de 2015 é o fechamento de 2014.
+    """
+    linhas = []
+    for arq in sorted((RAW / "strbi").glob("b6_*.xlsx"), reverse=True):  # edição mais recente primeiro
+        a = int(re.search(r"b6_(\d{4})", arq.name).group(1))
+        for aba, df in pd.read_excel(arq, sheet_name=None, header=None).items():
+            if aba == "fonte":
+                continue
+            m = df.values
+            cab = " ".join(str(c) for c in m[:8].ravel() if isinstance(c, str))
+            fator = 10.0 if "Million" in cab else 1.0
+            for r in m:
+                b = bank_id(_texto(r[1]) or "")
+                if b is None:
+                    continue
+                v = [_numero(x) for x in r[2:9]]
+                if np.isnan(v[0]) or np.isnan(v[4]):
+                    continue
+                for ano, val in ((a - 1, v[5]), (a, v[6])):
+                    linhas.append({"bank_id": b, "ano": ano, "item": "npa_liquido", "valor": val * fator,
+                                   "fonte": f"strbi/{arq.name}, aba {aba}"})
+    d = pd.read_excel(RAW / "strbi" / "dbie_t06_2015_2025.xlsx", sheet_name="dados", dtype=str)
+    for _, r in d.iterrows():
+        b = bank_id(r["banco"])
+        if b is None:
+            continue
+        ano = int(r["ano"])
+        for a, col in ((ano, "nnpa_fechamento"), (ano - 1, "nnpa_abertura")):
+            if a == ano - 1 and ano != 2015:
+                continue
+            linhas.append({"bank_id": b, "ano": a, "item": "npa_liquido", "valor": _numero(r[col]) * 100.0,
+                           "fonte": "strbi/dbie_t06_2015_2025.xlsx"})
+    out = pd.DataFrame(linhas)
+    return out.drop_duplicates(["bank_id", "ano", "item"], keep="first")
+
+
 def deflator():
     d = pd.read_excel(RAW / "mospi_gva.xlsx")
     idx = d["indice_implicito_2011_12"].copy()
@@ -188,11 +227,14 @@ def montar():
         "salarios": ["Expenses, Payments to and provisions for employees"],
         "provisoes": ["Expenses, Provisions and Contingencies"],
         "lucro": ["Expenses, Profit (Loss) during the year"]})
-    npa = ler_measure("credit_npa_movement", {"npa_bruto": ["gross NPAs at the end of the year"]})
+    npa = ler_measure("credit_npa_movement", {"npa_bruto": ["gross NPAs at the end of the year"],
+                                              "npa_liquido": ["net NPAs at the end of the year"]})
     emp = ler_measure("employees_banks", {"empregados": ["Total"]}, fator=1.0)
     ag = ler_measure("offices_banks", {"agencias": [re.compile(r".*, Branch")]}, fator=1.0, somar=True)
 
-    longo = pd.concat([b1, ler_b1_2014(), bs, prio, res, npa, emp, ag], ignore_index=True)
+    # NPA líquido: Measure; onde o Measure não tem o valor, o STRBI (B6 e Tabela 6 do DBIE).
+    longo = pd.concat([b1, ler_b1_2014(), bs, prio, res, npa, emp, ag, ler_npa_liquido_strbi()],
+                      ignore_index=True)
     longo = longo[longo["bank_id"].isin(IDS) & longo["ano"].isin(ANOS)]
     nom = longo.pivot_table(index=["bank_id", "ano"], columns="item", values="valor", aggfunc="first")
     idx = pd.MultiIndex.from_product([IDS, ANOS], names=["bank_id", "ano"])
@@ -208,11 +250,11 @@ def variaveis(nom):
     v["equity"] = nom["capital"] + nom["reservas"]
     v["deposits"] = nom["depositos"]
     v["borrowings"] = nom["emprestimos_tomados"]
-    v["npl"] = nom["npa_bruto"]
+    v["npl"] = nom["npa_liquido"]
     v["unused_assets"] = (nom["ativo_total"] - nom["caixa_rbi"] - nom["ativo_fixo"] - nom["adiantamentos"]
                           - nom["investimentos"])
     v["net_profit"] = nom["lucro"]
-    v["performing_loans"] = nom["adiantamentos"] - nom["npa_bruto"]
+    v["performing_loans"] = nom["adiantamentos"] - nom["npa_liquido"]
     v["investments"] = nom["investimentos"]
     v["provision"] = nom["provisoes"]
     v["net_interest_income"] = nom["juros_recebidos"] - nom["juros_pagos"]
