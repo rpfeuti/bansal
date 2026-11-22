@@ -209,8 +209,8 @@ Propostas no último plano (o usuário aprovou o plano para executar, mas confir
 - **Loan loss provisions** = `Provisions and Contingencies` (completo). Alternativa: provisões para NPA do arquivo de provisões.
 - **Resultado, empregados e agências de 2009 a 2013** vêm do Measure (contínuo de 2009 a 2017). B2, B4, B13 e B15 do STRBI ficam sem uso.
 - **Reservas obrigatórias** (para unused assets) = caixa + saldo no RBI.
-- **Performing loans** = adiantamentos do balanço − NPA bruto.
-- **NPL** = NPA bruto no fim do ano.
+- **Performing loans** = adiantamentos do balanço − NPA líquido (decisão do usuário em 22/11/2026).
+- **NPL** = NPA líquido no fim do ano (decisão do usuário em 22/11/2026). Fonte: Measure (`net NPAs at the end of the year`); onde o Measure não tem valor (NAIN 2009–2015), o STRBI: B6 (`strbi/b6_*.xlsx`, 2009–2013) e Tabela 6 do DBIE (`strbi/dbie_t06_2015_2025.xlsx`, 2014–2017). No STRBI o NPA líquido do NAIN de 2009 a 2015 é zero. O Measure foi conferido banco a banco contra essas tabelas do STRBI.
 - **Borrowings** = total de empréstimos tomados (item 4 do B1).
 - **Equity** = capital + reservas.
 - **Net-interest income** = Total (I) − Total (III).
@@ -224,7 +224,7 @@ Propostas no último plano (o usuário aprovou o plano para executar, mas confir
 ## Estado atual (base gerada)
 
 - `src/bansal/padronizar.py` está implementado e gera `data/padronizada/painel.xlsx`. Rodar da raiz com `$env:PYTHONPATH="src"; python -m bansal.padronizar`.
-- Resultado: as 13 variáveis e as 8 covariáveis estão completas para os 42 bancos de 2009 a 2017 (G_NPLs de 2009 fica vazio por definição). A aba `faltantes` está vazia.
+- Resultado: as 13 variáveis estão completas para os 42 bancos de 2009 a 2017. Covariáveis completas, exceto G_NPLs de 2009 (vazio por definição) e G_NPLs do NAIN: vazio de 2010 a 2015 (0/0) e infinito em 2016 (NPL líquido de 2015 = 0); essas observações ficam fora do GMM.
 - Unidade do Measure confirmada como Rs crore: Allahabad 2013, juros recebidos 174.357 (B2, Rs milhão) = 17.435,69 (Measure).
 - Investimentos do Measure (SLR + non-SLR) conferidos: a soma dos ativos fecha com o ativo total (Allahabad 2016).
 - Painel, índices, Tabelas 2–6 / B1 / B2, teste de Li e GMM gravados em `data/saida/`.
