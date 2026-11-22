@@ -37,11 +37,13 @@ def _progresso(nome):
     return f
 
 
-def indices_banco_ano(painel, meta):
-    """Linhas banco × ano × modelo com EC, TC e índice."""
+def indices_banco_ano(painel, meta, modelos=None):
+    """Linhas banco × ano × modelo com EC, TC e índice. modelos: lista (padrão: os quatro)."""
     anos_idx = [a for a in meta["anos"] if a >= 2010]
     linhas = []
     for modelo, chave in indices.MODELOS.items():
+        if modelos is not None and modelo not in modelos:
+            continue
         print(f"calculando {modelo}", flush=True)
         ddfs = indices.calcular_ddfs(painel, anos_idx, chave, progresso=_progresso(modelo))
         for r in ddfs:

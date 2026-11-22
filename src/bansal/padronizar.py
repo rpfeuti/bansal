@@ -281,9 +281,11 @@ def covariaveis(nom, v, defl):
     return c
 
 
-def main():
-    nom, fonte = montar()
-    defl = deflator()
+def painel_de_nominal(nom, defl):
+    """Da base nominal (índice bank_id, ano) ao painel real por agência e às covariáveis.
+
+    defl: {ano: índice do deflator, base 2011-12 = 100}.
+    """
     v = variaveis(nom)
     fator = pd.Series(nom.index.get_level_values("ano").map(defl), index=nom.index) / 100
     p = v.copy()
@@ -291,6 +293,13 @@ def main():
     p[monet] = p[monet].div(fator, axis=0)
     p = p.div(nom["agencias"], axis=0)
     c = covariaveis(nom, v, defl)
+    return p, c
+
+
+def main():
+    nom, fonte = montar()
+    defl = deflator()
+    p, c = painel_de_nominal(nom, defl)
 
     def com_nomes(df):
         df = df.reset_index()

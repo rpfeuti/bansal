@@ -20,8 +20,11 @@ VARIAVEIS = (
 
 def carregar(caminho=PAD):
     """painel[ano][variavel] = vetor n; metadados e covariáveis por (banco, ano)."""
-    p = pd.read_excel(caminho, sheet_name="painel")
-    c = pd.read_excel(caminho, sheet_name="covariaveis")
+    return montar(pd.read_excel(caminho, sheet_name="painel"), pd.read_excel(caminho, sheet_name="covariaveis"))
+
+
+def montar(p, c):
+    """O mesmo de carregar, a partir das tabelas painel e covariaveis (colunas bank_id, ano, ...)."""
     anos = sorted(p["ano"].unique())
     painel = {}
     for a in anos:
